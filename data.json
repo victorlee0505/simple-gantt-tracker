@@ -1,20 +1,38 @@
 [
-    {
-        "id": "Task 1",
-        "name": "Redesign Website",
-        "start": "2023-10-01",
-        "end": "2023-10-05",
-        "progress": 20,
-        "dependencies": "",
-        "custom_class": "bar-milestone"
-    },
-    {
-        "id": "Task 2",
-        "name": "Write API",
-        "start": "2023-10-03",
-        "end": "2023-10-08",
-        "progress": 0,
-        "dependencies": "Task 1",
-        "custom_class": ""
-    }
+  {
+    "id": 1,
+    "name": "Design Mockups",
+    "start": "2025-12-26",
+    "end": "2026-01-03",
+    "progress": 20,
+    "dependencies": "",
+    "assignee": "Bolu",
+    "task_type": "Frontend",
+    "task_url": "https://jira.com/task-1",
+    "desc": "Use Figma files from the design team."
+  },
+  {
+    "id": 2,
+    "name": "Database Setup",
+    "start": "2026-01-06",
+    "end": "2026-01-11",
+    "progress": 30,
+    "dependencies": "1",
+    "assignee": "Bolu",
+    "task_type": "Backend",
+    "task_url": "https://jira.com/task-2",
+    "desc": "PostgreSQL setup on AWS."
+  },
+  {
+    "name": "API Design",
+    "start": "2026-01-08",
+    "end": "2026-01-15",
+    "id": 3,
+    "progress": 0,
+    "dependencies": "1",
+    "assignee": "Unassigned",
+    "task_type": "Risk",
+    "desc": "test test",
+    "task_url": "https://jira.com/task-3"
+  }
 ]

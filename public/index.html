@@ -2,69 +2,371 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>My Dev Tracker</title>
+    <title>Dev Tracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
+    
+    <style id="dynamic-styles"></style>
+
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .gantt-container { overflow: auto; }
+        body { font-family: 'Helvetica Neue', sans-serif; padding: 20px; background: #f4f4f4; }
+        h1 { text-align: center; color: #333; }
+        
+        /* --- CONTROLS --- */
+        .controls-wrapper { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .button-group { display: flex; gap: 5px; }
+        .button, select {
+            padding: 8px 12px; border: 1px solid #ccc; background: white; cursor: pointer; border-radius: 4px; font-size: 14px;
+        }
+        .button.active, .button:hover { background: #333; color: white; border-color: #333; }
+        
+        .btn-add { background: #27ae60; color: white; border-color: #219150; font-weight: bold; }
+        .btn-add:hover { background: #219150; }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: white; padding: 25px; border-radius: 8px; width: 300px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .modal-content h3 { margin-top: 0; color: #333; }
+        .modal-content label { display: block; margin-top: 10px; font-weight: bold; font-size: 12px; color: #555; }
+        .modal-content input { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;}
+        
+        .modal-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-save { background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        .btn-cancel { background: #95a5a6; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+
+        /* Default fallback color */
+        .type-default .bar { fill: #95a5a6 !important; }
+        
+        /* --- POPUP FIXES --- */
+        .popup-wrapper {
+            background: #fff !important; color: #333 !important; width: 320px !important;
+            padding: 0 !important; box-shadow: 0 10px 40px rgba(0,0,0,0.4) !important;
+            border-radius: 5px !important; z-index: 9999 !important;
+        }
+        .popup-wrapper::after { border-bottom-color: #fff !important; }
+        .details-container { font-size: 13px; padding: 15px; max-height: 400px; overflow-y: auto; }
+        .details-container h5 { margin: 0 0 10px 0; color: #2c3e50; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px;}
+        .details-container label { display: block; margin-top: 10px; font-weight: bold; font-size: 11px; color: #7f8c8d; text-transform: uppercase; }
+        
+        .details-container select, .details-container textarea, .details-container input { 
+            width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ddd; border-radius: 4px; 
+            font-family: inherit; font-size: 12px; box-sizing: border-box; background: #fafafa;
+        }
+        .details-container select[multiple] { height: 80px; background: #fff; }
+        .details-container textarea { resize: vertical; min-height: 60px; }
+        
+        .gantt-container { background: white; border-radius: 8px; overflow: visible !important; }
+        svg#gantt { overflow: visible !important; }
+        .body-wrapper { min-height: 900px; padding-bottom: 100px; }
     </style>
 </head>
 <body>
-    <h2>Software Dev Tracker</h2>
-    <div class="gantt-target"></div>
+
+    <div class="body-wrapper">
+        <h1>Software Development Tracker</h1>
+        
+        <div class="controls-wrapper">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button class="button btn-add" onclick="openModal()">+ New Task</button>
+                <select id="assignee-filter" onchange="redrawChart()">
+                    <option value="All">All Developers</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button class="button" onclick="changeView('Quarter Day', this)">Quarter Day</button>
+                <button class="button" onclick="changeView('Half Day', this)">Half Day</button>
+                <button class="button" onclick="changeView('Day', this)">Day</button>
+                <button class="button active" onclick="changeView('Week', this)">Week</button>
+                <button class="button" onclick="changeView('Month', this)">Month</button>
+            </div>
+        </div>
+
+        <svg id="gantt"></svg>
+    </div>
+
+    <div id="add-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Add New Task</h3>
+            <label>Task Name *</label>
+            <input type="text" id="new-name" placeholder="e.g. API Integration">
+            <label>Start Date *</label>
+            <input type="date" id="new-start">
+            <label>End Date *</label>
+            <input type="date" id="new-end">
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-save" onclick="saveNewTask()">Create Task</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // 1. Fetch data from our Node server
-        fetch('/api/tasks')
-            .then(response => response.json())
-            .then(tasks => {
-                initializeGantt(tasks);
+        let gantt;
+        let allTasks = []; 
+        let developers = [];
+        let taskTypes = []; // Loaded from API
+
+        window.onload = async function() {
+            try {
+                // Fetch All Data in Parallel
+                const [tasksRes, devsRes, typesRes] = await Promise.all([
+                    fetch('/api/tasks'),
+                    fetch('/api/assignees'),
+                    fetch('/api/task-types')
+                ]);
+
+                allTasks = await tasksRes.json();
+                developers = await devsRes.json();
+                taskTypes = await typesRes.json();
+
+                // 1. Generate Dynamic CSS for Task Colors
+                generateTypeStyles();
+
+                // 2. Setup UI
+                populateDropdowns();
+                redrawChart();
+            } catch (err) {
+                console.error("Error loading data:", err);
+            }
+        };
+
+        // --- NEW: Generate CSS from JSON ---
+        function generateTypeStyles() {
+            let styleHTML = "";
+            
+            taskTypes.forEach(type => {
+                // Create a class name from the type name (e.g. "Frontend" -> "type-frontend")
+                const safeName = "type-" + type.name.toLowerCase().replace(/\s+/g, '-');
+                const mainColor = type.color;
+                const progressColor = lightenDarkenColor(mainColor, -20); // Darken by 20%
+
+                styleHTML += `
+                    .${safeName} .bar { fill: ${mainColor} !important; }
+                    .${safeName} .bar-progress { fill: ${progressColor} !important; }
+                `;
             });
+            
+            document.getElementById('dynamic-styles').innerHTML = styleHTML;
+        }
 
-        function initializeGantt(tasks) {
-            var gantt = new Gantt(".gantt-target", tasks, {
-                
-                // 2. Hook into the dragging event
-                on_date_change: function(task, start, end) {
-                    console.log("Task changed:", task);
-                    
-                    // Format dates to YYYY-MM-DD for consistency
-                    const newStart = start.toISOString().split('T')[0];
-                    const newEnd = end.toISOString().split('T')[0];
-
-                    updateServer(task.id, {
-                        start: newStart,
-                        end: newEnd
-                    });
-                },
-
-                // 3. Hook into progress dragging
-                on_progress_change: function(task, progress) {
-                    console.log("Progress changed:", progress);
-                    updateServer(task.id, {
-                        progress: progress
-                    });
-                },
-                
-                view_mode: 'Day',
-                language: 'en'
+        function populateDropdowns() {
+            const filterSelect = document.getElementById('assignee-filter');
+            filterSelect.innerHTML = '<option value="All">All Developers</option>';
+            developers.forEach(dev => {
+                const option = document.createElement("option");
+                option.value = dev;
+                option.text = dev;
+                filterSelect.appendChild(option);
             });
         }
 
-        // 4. Send changes back to Node server
-        function updateServer(taskId, updates) {
-            // We need to fetch the current task object first or just patch it.
-            // For this simple demo, we send the ID and the fields to update.
+        function redrawChart() {
+            const selectedDev = document.getElementById('assignee-filter').value;
+            const filteredRaw = (selectedDev === "All") 
+                ? allTasks 
+                : allTasks.filter(t => t.assignee === selectedDev);
+
+            const ganttData = filteredRaw.map(t => formatTaskForGantt(t));
             
+            document.getElementById('gantt').innerHTML = '';
+            initGantt(ganttData);
+        }
+
+        function formatTaskForGantt(t) {
+            // Find class name dynamically based on loaded types
+            let cssClass = 'type-default';
+            if (t.task_type) {
+                cssClass = "type-" + t.task_type.toLowerCase().replace(/\s+/g, '-');
+            }
+
+            let fixedDeps = "";
+            if (t.dependencies) {
+                fixedDeps = String(t.dependencies).split(',').map(d => "task-" + d.trim()).join(', ');
+            }
+
+            return { 
+                ...t, 
+                id: "task-" + t.id, 
+                dependencies: fixedDeps,
+                _originalId: t.id, 
+                custom_class: cssClass 
+            };
+        }
+
+        function initGantt(tasksToRender) {
+            if(tasksToRender.length === 0) return;
+
+            gantt = new Gantt("#gantt", tasksToRender, {
+                header_height: 50,
+                column_width: 30,
+                step: 24,
+                view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
+                bar_height: 25,
+                bar_corner_radius: 3,
+                arrow_curve: 5,
+                padding: 18,
+                view_mode: 'Week',
+                date_format: 'YYYY-MM-DD',
+                language: 'en', 
+
+                on_date_change: function(task, start, end) {
+                    const newStart = start.toISOString().split('T')[0];
+                    const newEnd = end.toISOString().split('T')[0];
+                    updateServer({ id: task._originalId, start: newStart, end: newEnd });
+                },
+
+                on_progress_change: function(task, progress) {
+                    updateServer({ id: task._originalId, progress: progress });
+                },
+
+                custom_popup_html: function(task) {
+                    const rawTask = allTasks.find(t => t.id == task._originalId) || task;
+                    
+                    const start_date = task._start.toLocaleDateString();
+                    const end_date = task._end.toLocaleDateString();
+
+                    let devOptions = developers.map(dev => 
+                        `<option value="${dev}" ${rawTask.assignee === dev ? 'selected' : ''}>${dev}</option>`
+                    ).join('');
+
+                    // DYNAMIC TYPE OPTIONS
+                    let typeOptions = taskTypes.map(typeObj => 
+                        `<option value="${typeObj.name}" ${rawTask.task_type === typeObj.name ? 'selected' : ''}>${typeObj.name}</option>`
+                    ).join('');
+                    
+                    let currentDeps = [];
+                    if(rawTask.dependencies) {
+                        currentDeps = String(rawTask.dependencies).split(',').map(d => d.trim());
+                    }
+
+                    let depOptions = allTasks
+                        .filter(t => t.id != rawTask.id)
+                        .map(t => {
+                            const isSelected = currentDeps.includes(String(t.id)) ? 'selected' : '';
+                            return `<option value="${t.id}" ${isSelected}>#${t.id} - ${t.name}</option>`;
+                        }).join('');
+
+                    let descText = rawTask.desc || "";
+                    let urlText = rawTask.task_url || "";
+
+                    const linkHtml = rawTask.task_url 
+                        ? `<a href="${rawTask.task_url}" target="_blank" style="float:right; font-size:11px; margin-top:3px;">🔗 Open</a>` 
+                        : '';
+
+                    return `
+                      <div class="details-container">
+                        ${linkHtml}
+                        <h5>#${rawTask.id} - ${rawTask.name}</h5>
+                        <p style="margin:0 0 5px 0; font-size:11px; color:#999;">${start_date} - ${end_date} (${task.progress}%)</p>
+                        
+                        <label>Task Type:</label>
+                        <select onchange="updateGeneric(${rawTask.id}, 'task_type', this.value)">${typeOptions}</select>
+
+                        <label>Assignee:</label>
+                        <select onchange="updateGeneric(${rawTask.id}, 'assignee', this.value)">${devOptions}</select>
+
+                        <label>Task URL:</label>
+                        <input type="text" value="${urlText}" onchange="updateGeneric(${rawTask.id}, 'task_url', this.value)" placeholder="https://...">
+
+                        <label>Dependencies (Ctrl+Click):</label>
+                        <select multiple onchange="updateDependencies(${rawTask.id}, this)">
+                            <option value="">(None)</option>
+                            ${depOptions}
+                        </select>
+
+                        <label>Description:</label>
+                        <textarea onchange="updateGeneric(${rawTask.id}, 'desc', this.value)">${descText}</textarea>
+                      </div>
+                    `;
+                }
+            });
+        }
+
+        function changeView(mode, btn) {
+            document.querySelectorAll('.button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            gantt.change_view_mode(mode);
+        }
+
+        // --- UTILS & MODALS ---
+        
+        // Helper to darken hex color for progress bar
+        function lightenDarkenColor(col, amt) {
+            let usePound = false;
+            if (col[0] == "#") {
+                col = col.slice(1);
+                usePound = true;
+            }
+            let num = parseInt(col, 16);
+            let r = (num >> 16) + amt;
+            if (r > 255) r = 255; else if (r < 0) r = 0;
+            let b = ((num >> 8) & 0x00FF) + amt;
+            if (b > 255) b = 255; else if (b < 0) b = 0;
+            let g = (num & 0x0000FF) + amt;
+            if (g > 255) g = 255; else if (g < 0) g = 0;
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16);
+        }
+
+        function openModal() { document.getElementById('add-modal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('add-modal').style.display = 'none'; }
+        
+        function saveNewTask() {
+            const name = document.getElementById('new-name').value;
+            const start = document.getElementById('new-start').value;
+            const end = document.getElementById('new-end').value;
+
+            if(!name || !start || !end) {
+                alert("Please fill in Name, Start Date, and End Date");
+                return;
+            }
+            
+            // Auto-assign first type from list as default
+            const defaultType = taskTypes.length > 0 ? taskTypes[0].name : "Frontend";
+
+            fetch('/api/add-task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, start, end, task_type: defaultType })
+            })
+            .then(res => res.json())
+            .then(data => {
+                allTasks.push(data.task);
+                redrawChart();
+                closeModal();
+                document.getElementById('new-name').value = '';
+            });
+        }
+
+        window.updateDependencies = function(id, selectElem) {
+            const selectedValues = Array.from(selectElem.selectedOptions)
+                .map(opt => opt.value).filter(val => val !== "");
+            updateGeneric(id, 'dependencies', selectedValues.join(', '));
+        }
+
+        window.updateGeneric = function(id, field, value) {
+            updateServer({ id: id, [field]: value });
+            const index = allTasks.findIndex(t => t.id == id);
+            if(index > -1) allTasks[index][field] = value;
+            redrawChart();
+        }
+
+        function updateServer(data) {
             fetch('/api/update-task', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: taskId, ...updates })
-            })
-            .then(res => res.json())
-            .then(data => console.log("Saved to disk!", data))
-            .catch(err => console.error("Save failed", err));
+                body: JSON.stringify(data)
+            }).catch(console.error);
         }
     </script>
 </body>

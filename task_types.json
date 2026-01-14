@@ -1,0 +1,22 @@
+[
+    {
+        "name": "Frontend",
+        "color": "#3498db"
+    },
+    {
+        "name": "Backend",
+        "color": "#9b59b6"
+    },
+    {
+        "name": "Risk",
+        "color": "#e74c3c"
+    },
+    {
+        "name": "Design",
+        "color": "#f1c40f"
+    },
+    {
+        "name": "DevOps",
+        "color": "#2ecc71"
+    }
+]
