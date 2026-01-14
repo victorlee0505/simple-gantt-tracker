@@ -352,11 +352,29 @@
         // --- CHART LOGIC ---
         function generateTypeStyles() {
             let styleHTML = "";
+            
             taskTypes.forEach(type => {
                 const safeName = "type-" + type.name.toLowerCase().replace(/\s+/g, '-');
-                const progressColor = lightenDarkenColor(type.color, -20);
-                styleHTML += `.${safeName} .bar { fill: ${type.color} !important; } .${safeName} .bar-progress { fill: ${progressColor} !important; }`;
+                
+                // 1. The Bold Color (for Progress and Border)
+                const boldColor = type.color;
+                
+                // 2. The Washed-out Color (for the empty part of the bar)
+                // We add 50 to the RGB values to make it lighter/pastel
+                const paleColor = lightenDarkenColor(boldColor, 50);
+
+                styleHTML += `
+                    .${safeName} .bar { 
+                        fill: ${paleColor} !important; 
+                        stroke: ${boldColor} !important; /* Keep a sharp border */
+                        stroke-width: 1px !important;
+                    }
+                    .${safeName} .bar-progress { 
+                        fill: ${boldColor} !important; 
+                    }
+                `;
             });
+            
             document.getElementById('dynamic-styles').innerHTML = styleHTML;
         }
 
@@ -437,7 +455,11 @@
                       <div class="details-container">
                         ${linkHtml}
                         <h5>#${rawTask.id} - ${rawTask.name}</h5>
-                        <p style="margin:0 0 5px 0; font-size:11px; color:#999;">${task._start.toLocaleDateString()} - ${task._end.toLocaleDateString()} (${task.progress}%)</p>
+                        <p style="margin:0 0 5px 0; font-size:11px; color:#999;">${task._start.toLocaleDateString()} - ${task._end.toLocaleDateString()}</p>
+                        
+                        <label>Progress (%):</label>
+                        <input ${disabledAttr} type="number" min="0" max="100" value="${rawTask.progress || 0}" onchange="updateGeneric(${rawTask.id}, 'progress', Number(this.value))">
+
                         
                         <label>Task Type:</label>
                         <select ${disabledAttr} onchange="updateGeneric(${rawTask.id}, 'task_type', this.value)">${typeOptions}</select>
