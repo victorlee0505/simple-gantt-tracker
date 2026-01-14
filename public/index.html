@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Dev Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .gantt-container { overflow: auto; }
+    </style>
+</head>
+<body>
+    <h2>Software Dev Tracker</h2>
+    <div class="gantt-target"></div>
+
+    <script>
+        // 1. Fetch data from our Node server
+        fetch('/api/tasks')
+            .then(response => response.json())
+            .then(tasks => {
+                initializeGantt(tasks);
+            });
+
+        function initializeGantt(tasks) {
+            var gantt = new Gantt(".gantt-target", tasks, {
+                
+                // 2. Hook into the dragging event
+                on_date_change: function(task, start, end) {
+                    console.log("Task changed:", task);
+                    
+                    // Format dates to YYYY-MM-DD for consistency
+                    const newStart = start.toISOString().split('T')[0];
+                    const newEnd = end.toISOString().split('T')[0];
+
+                    updateServer(task.id, {
+                        start: newStart,
+                        end: newEnd
+                    });
+                },
+
+                // 3. Hook into progress dragging
+                on_progress_change: function(task, progress) {
+                    console.log("Progress changed:", progress);
+                    updateServer(task.id, {
+                        progress: progress
+                    });
+                },
+                
+                view_mode: 'Day',
+                language: 'en'
+            });
+        }
+
+        // 4. Send changes back to Node server
+        function updateServer(taskId, updates) {
+            // We need to fetch the current task object first or just patch it.
+            // For this simple demo, we send the ID and the fields to update.
+            
+            fetch('/api/update-task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: taskId, ...updates })
+            })
+            .then(res => res.json())
+            .then(data => console.log("Saved to disk!", data))
+            .catch(err => console.error("Save failed", err));
+        }
+    </script>
+</body>
+</html>

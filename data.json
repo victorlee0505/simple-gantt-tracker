@@ -1,0 +1,20 @@
+[
+    {
+        "id": "Task 1",
+        "name": "Redesign Website",
+        "start": "2023-10-01",
+        "end": "2023-10-05",
+        "progress": 20,
+        "dependencies": "",
+        "custom_class": "bar-milestone"
+    },
+    {
+        "id": "Task 2",
+        "name": "Write API",
+        "start": "2023-10-03",
+        "end": "2023-10-08",
+        "progress": 0,
+        "dependencies": "Task 1",
+        "custom_class": ""
+    }
+]
