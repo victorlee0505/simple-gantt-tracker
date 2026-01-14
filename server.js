@@ -5,6 +5,8 @@ const path = require('path');
 const app = express();
 const PORT = 3000;
 
+const ADMIN_PASSWORD = "admin"; // <--- CHANGE THIS PASSWORD
+
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
@@ -20,6 +22,18 @@ function readJsonFile(filePath) {
         return [];
     }
 }
+
+// --- API ENDPOINTS ---
+
+// POST: Login Endpoint
+app.post('/api/login', (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASSWORD) {
+        res.send({ success: true });
+    } else {
+        res.status(401).send({ success: false });
+    }
+});
 
 // GET: Fetch Tasks
 app.get('/api/tasks', (req, res) => {
