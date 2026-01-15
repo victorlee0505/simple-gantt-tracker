@@ -230,6 +230,10 @@
                 <select id="assignee-filter" onchange="redrawChart()">
                     <option value="All">All Developers</option>
                 </select>
+
+                <select id="type-filter" onchange="redrawChart()">
+                    <option value="All">All Types</option>
+                </select>
             </div>
 
             <div class="button-group">
@@ -379,6 +383,7 @@
         }
 
         function populateDropdowns() {
+            // 1. Assignee Filter
             const filterSelect = document.getElementById('assignee-filter');
             filterSelect.innerHTML = '<option value="All">All Developers</option>';
             developers.forEach(dev => {
@@ -387,13 +392,32 @@
                 option.text = dev;
                 filterSelect.appendChild(option);
             });
+
+            // 2. NEW: Task Type Filter
+            const typeSelect = document.getElementById('type-filter');
+            typeSelect.innerHTML = '<option value="All">All Types</option>';
+            taskTypes.forEach(type => {
+                const option = document.createElement("option");
+                option.value = type.name;
+                option.text = type.name;
+                typeSelect.appendChild(option);
+            });
         }
 
         function redrawChart() {
             const selectedDev = document.getElementById('assignee-filter').value;
+            const selectedType = document.getElementById('type-filter').value; // Get Type Filter
             
-            // 1. Filter the tasks
-            const filteredRaw = (selectedDev === "All") ? allTasks : allTasks.filter(t => t.assignee === selectedDev);
+            // 1. Filter the tasks (Check BOTH filters)
+            let filteredRaw = allTasks;
+
+            if (selectedDev !== "All") {
+                filteredRaw = filteredRaw.filter(t => t.assignee === selectedDev);
+            }
+
+            if (selectedType !== "All") {
+                filteredRaw = filteredRaw.filter(t => t.task_type === selectedType);
+            }
             
             // 2. SAFETY CHECK: Create a Set of all IDs currently visible
             // This allows us to remove dependencies that point to hidden tasks (preventing crashes)
