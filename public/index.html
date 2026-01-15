@@ -391,21 +391,51 @@
 
         function redrawChart() {
             const selectedDev = document.getElementById('assignee-filter').value;
+            
+            // 1. Filter the tasks
             const filteredRaw = (selectedDev === "All") ? allTasks : allTasks.filter(t => t.assignee === selectedDev);
-            const ganttData = filteredRaw.map(t => formatTaskForGantt(t));
+            
+            // 2. SAFETY CHECK: Create a Set of all IDs currently visible
+            // This allows us to remove dependencies that point to hidden tasks (preventing crashes)
+            const visibleIds = new Set(filteredRaw.map(t => String(t.id)));
+
+            const ganttData = filteredRaw.map(t => formatTaskForGantt(t, visibleIds));
 
             document.getElementById('gantt').innerHTML = '';
             initGantt(ganttData);
         }
 
-        function formatTaskForGantt(t) {
+        function formatTaskForGantt(t, visibleIds) {
             let cssClass = 'type-default';
             if (t.task_type) {
                 cssClass = "type-" + t.task_type.toLowerCase().replace(/\s+/g, '-');
             }
-            let fixedDeps = t.dependencies ? String(t.dependencies).split(',').map(d => "task-" + d.trim()).join(', ') : "";
 
-            return { ...t, id: "task-" + t.id, dependencies: fixedDeps, _originalId: t.id, custom_class: cssClass };
+            // 1. Process Dependencies
+            let depsArray = t.dependencies ? String(t.dependencies).split(',') : [];
+            
+            // If visibleIds is provided (we are filtering), remove deps that aren't on screen
+            if (visibleIds) {
+                depsArray = depsArray.filter(d => visibleIds.has(d.trim()));
+            }
+
+            // 2. FIX: Prevent Double Prefixing (task-task-1)
+            let fixedDeps = depsArray.map(d => {
+                const cleanD = d.trim();
+                return cleanD.startsWith("task-") ? cleanD : "task-" + cleanD;
+            }).join(', ');
+
+            // 3. FIX: Prevent Double Prefixing on ID
+            const rawIdString = String(t.id);
+            const finalId = rawIdString.startsWith("task-") ? rawIdString : "task-" + rawIdString;
+
+            return { 
+                ...t, 
+                id: finalId, 
+                dependencies: fixedDeps, 
+                _originalId: t.id, // Keep the raw ID (e.g. 1) safe here
+                custom_class: cssClass 
+            };
         }
 
         function initGantt(tasksToRender) {
