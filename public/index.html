@@ -102,17 +102,31 @@
             background: white;
             padding: 25px;
             border-radius: 8px;
-            width: 300px;
+            width: 400px; /* Widened for better form layout */
+            max-height: 90vh; /* Prevent overflow on small screens */
+            overflow-y: auto;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
-        .modal-content input {
+        /* Form Inputs */
+        .modal-content label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .modal-content input, 
+        .modal-content select, 
+        .modal-content textarea {
             width: 100%;
             padding: 8px;
             margin-top: 5px;
             border: 1px solid #ccc;
             border-radius: 4px;
             box-sizing: border-box;
+            font-family: inherit;
         }
 
         .modal-actions {
@@ -213,6 +227,14 @@
             min-height: 900px;
             padding-bottom: 100px;
         }
+        
+        /* Helper for side-by-side inputs in modal */
+        .flex-row {
+            display: flex; gap: 10px;
+        }
+        .flex-col {
+            flex: 1;
+        }
     </style>
 </head>
 
@@ -251,9 +273,44 @@
     <div id="add-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Add New Task</h3>
-            <label>Task Name</label> <input type="text" id="new-name">
-            <label>Start Date</label> <input type="date" id="new-start">
-            <label>End Date</label> <input type="date" id="new-end">
+            
+            <label>ID (Optional)</label>
+            <input type="number" id="new-id" placeholder="Auto-generated if empty">
+
+            <label>Task Name *</label> 
+            <input type="text" id="new-name" placeholder="e.g. Design Database">
+            
+            <div class="flex-row">
+                <div class="flex-col">
+                    <label>Start Date *</label> 
+                    <input type="date" id="new-start">
+                </div>
+                <div class="flex-col">
+                    <label>End Date *</label> 
+                    <input type="date" id="new-end">
+                </div>
+            </div>
+
+            <div class="flex-row">
+                <div class="flex-col">
+                    <label>Type</label> 
+                    <select id="new-type"></select>
+                </div>
+                <div class="flex-col">
+                    <label>Assignee</label> 
+                    <select id="new-assignee"></select>
+                </div>
+            </div>
+
+            <label>Progress (%)</label> 
+            <input type="number" id="new-progress" min="0" max="100" value="0">
+
+            <label>Task URL</label> 
+            <input type="text" id="new-url" placeholder="https://...">
+
+            <label>Description</label> 
+            <textarea id="new-desc" rows="3"></textarea>
+
             <div class="modal-actions">
                 <button class="button" onclick="closeAddModal()">Cancel</button>
                 <button class="btn-save" onclick="saveNewTask()">Create</button>
@@ -350,7 +407,32 @@
         }
 
         function closePassModal() { document.getElementById('password-modal').style.display = 'none'; }
-        function openAddModal() { document.getElementById('add-modal').style.display = 'flex'; }
+        
+        // --- ADD MODAL LOGIC (UPDATED) ---
+        function openAddModal() { 
+            // Populate Types
+            const typeSelect = document.getElementById('new-type');
+            typeSelect.innerHTML = '';
+            taskTypes.forEach(t => {
+                let opt = document.createElement('option');
+                opt.value = t.name;
+                opt.text = t.name;
+                typeSelect.appendChild(opt);
+            });
+
+            // Populate Assignees
+            const assignSelect = document.getElementById('new-assignee');
+            assignSelect.innerHTML = '';
+            developers.forEach(d => {
+                let opt = document.createElement('option');
+                opt.value = d;
+                opt.text = d;
+                assignSelect.appendChild(opt);
+            });
+
+            document.getElementById('add-modal').style.display = 'flex'; 
+        }
+
         function closeAddModal() { document.getElementById('add-modal').style.display = 'none'; }
 
         // --- CHART LOGIC ---
@@ -364,13 +446,12 @@
                 const boldColor = type.color;
                 
                 // 2. The Washed-out Color (for the empty part of the bar)
-                // We add 50 to the RGB values to make it lighter/pastel
                 const paleColor = lightenDarkenColor(boldColor, 50);
 
                 styleHTML += `
                     .${safeName} .bar { 
                         fill: ${paleColor} !important; 
-                        stroke: ${boldColor} !important; /* Keep a sharp border */
+                        stroke: ${boldColor} !important;
                         stroke-width: 1px !important;
                     }
                     .${safeName} .bar-progress { 
@@ -393,7 +474,7 @@
                 filterSelect.appendChild(option);
             });
 
-            // 2. NEW: Task Type Filter
+            // 2. Task Type Filter
             const typeSelect = document.getElementById('type-filter');
             typeSelect.innerHTML = '<option value="All">All Types</option>';
             taskTypes.forEach(type => {
@@ -420,7 +501,6 @@
             }
             
             // 2. SAFETY CHECK: Create a Set of all IDs currently visible
-            // This allows us to remove dependencies that point to hidden tasks (preventing crashes)
             const visibleIds = new Set(filteredRaw.map(t => String(t.id)));
 
             const ganttData = filteredRaw.map(t => formatTaskForGantt(t, visibleIds));
@@ -553,20 +633,49 @@
         }
 
         function saveNewTask() {
+            // Updated to grab all fields
+            const id = document.getElementById('new-id').value; // Optional
             const name = document.getElementById('new-name').value;
             const start = document.getElementById('new-start').value;
             const end = document.getElementById('new-end').value;
-            if (!name || !start || !end) return alert("Missing fields");
+            const type = document.getElementById('new-type').value;
+            const assignee = document.getElementById('new-assignee').value;
+            const progress = document.getElementById('new-progress').value;
+            const url = document.getElementById('new-url').value;
+            const desc = document.getElementById('new-desc').value;
 
-            const defaultType = taskTypes.length > 0 ? taskTypes[0].name : "Frontend";
+            if (!name || !start || !end) return alert("Missing Mandatory Fields (Name, Start, End)");
+
+            const payload = { 
+                id, 
+                name, 
+                start, 
+                end, 
+                task_type: type, 
+                assignee, 
+                progress: Number(progress),
+                task_url: url,
+                desc: desc
+            };
 
             fetch('/api/add-task', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, start, end, task_type: defaultType })
+                body: JSON.stringify(payload)
             })
                 .then(res => res.json())
-                .then(data => { allTasks.push(data.task); redrawChart(); closeAddModal(); });
+                .then(data => { 
+                    if(data.error) {
+                        alert(data.error);
+                    } else {
+                        allTasks.push(data.task); 
+                        redrawChart(); 
+                        closeAddModal(); 
+                        // Clear Inputs
+                        document.getElementById('new-name').value = '';
+                        document.getElementById('new-id').value = '';
+                    }
+                });
         }
 
         window.updateDependencies = function (id, selectElem) {

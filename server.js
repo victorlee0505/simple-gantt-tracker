@@ -60,19 +60,32 @@ app.get('/api/task-types', (req, res) => {
     res.send(list);
 });
 
-// POST: Add Task
+// POST: Add Task (UPDATED)
 app.post('/api/add-task', (req, res) => {
     const newTask = req.body;
     let tasks = readJsonFile(DATA_FILE);
 
-    const maxId = tasks.reduce((max, t) => (parseInt(t.id) > max ? parseInt(t.id) : max), 0);
-    newTask.id = maxId + 1;
+    // 1. Validation: Ensure mandatory fields exist
+    if (!newTask.name || !newTask.start || !newTask.end) {
+        return res.status(400).send({ error: "Missing mandatory fields: name, start, end" });
+    }
+
+    // 2. ID Handling: Use provided ID or Auto-generate (Max + 1)
+    if (!newTask.id) {
+        const maxId = tasks.reduce((max, t) => (parseInt(t.id) > max ? parseInt(t.id) : max), 0);
+        newTask.id = maxId + 1;
+    } else {
+        // Ensure ID is treated as a number/string consistently
+        newTask.id = parseInt(newTask.id) || newTask.id; 
+    }
     
-    newTask.progress = 0;
-    newTask.dependencies = "";
+    // 3. Optional Fields: Use provided value OR fallback to default
+    newTask.progress = (newTask.progress !== undefined) ? newTask.progress : 0;
+    newTask.dependencies = newTask.dependencies || "";
     newTask.assignee = newTask.assignee || "Unassigned";
-    // Default to first available type name if possible, else "Frontend"
     newTask.task_type = newTask.task_type || "Frontend";
+    newTask.desc = newTask.desc || "";
+    newTask.task_url = newTask.task_url || "";
 
     tasks.push(newTask);
 
