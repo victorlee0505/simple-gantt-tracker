@@ -1,0 +1,305 @@
+body {
+    font-family: 'Helvetica Neue', sans-serif;
+    padding: 0;
+    /* Remove padding so sticky touches top */
+    margin: 0;
+    background: #f4f4f4;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin: 20px 0;
+}
+
+/* --- STICKY HEADER FIX --- */
+.controls-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 15px 20px;
+    /* Add horizontal padding */
+
+    /* THIS LOCKS THE ROW TO THE TOP */
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+
+    /* Add shadow and border to separate from content */
+    border-bottom: 1px solid #ddd;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* -------------------------- */
+
+.button-group {
+    display: flex;
+    gap: 5px;
+}
+
+.button,
+select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.button.active,
+.button:hover {
+    background: #333;
+    color: white;
+    border-color: #333;
+}
+
+/* --- NEW: CHECKBOX DROPDOWN STYLES --- */
+.dropdown-check-list {
+    display: inline-block;
+    position: relative;
+}
+
+.dropdown-check-list .anchor {
+    position: relative;
+    cursor: pointer;
+    display: inline-block;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    font-size: 14px;
+}
+
+.dropdown-check-list .anchor:after {
+    content: "";
+    border-left: 2px solid black;
+    border-top: 2px solid black;
+    padding: 2px;
+    border-right: 0;
+    border-bottom: 0;
+    transform: rotate(-135deg);
+    display: inline-block;
+    margin-left: 10px;
+    vertical-align: 2px;
+}
+
+.dropdown-check-list ul.items {
+    padding: 10px;
+    display: none;
+    margin: 0;
+    border: 1px solid #ccc;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    z-index: 2000;
+    /* Above everything else */
+    width: 150px;
+    border-radius: 4px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    list-style: none;
+}
+
+.dropdown-check-list.visible .items {
+    display: block;
+}
+
+.dropdown-check-list ul.items li {
+    margin-bottom: 5px;
+    display: block;
+    font-size: 13px;
+}
+
+.dropdown-check-list ul.items li input {
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.btn-add {
+    background: #27ae60;
+    color: white;
+    border-color: #219150;
+    font-weight: bold;
+}
+
+.btn-add:hover {
+    background: #219150;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.btn-lock {
+    background: #e74c3c;
+    color: white;
+    font-weight: bold;
+    border: none;
+}
+
+.btn-unlock {
+    background: #f39c12;
+    color: white;
+    font-weight: bold;
+    border: none;
+}
+
+/* MODALS */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 12px;
+    color: #555;
+}
+
+.modal-content input,
+.modal-content select,
+.modal-content textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn-save {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.type-default .bar {
+    fill: #95a5a6 !important;
+}
+
+/* POPUP */
+.popup-wrapper {
+    background: #fff !important;
+    color: #333 !important;
+    width: 320px !important;
+    padding: 0 !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4) !important;
+    border-radius: 5px !important;
+    z-index: 9999 !important;
+}
+
+.popup-wrapper::after {
+    border-bottom-color: #fff !important;
+}
+
+.details-container {
+    font-size: 13px;
+    padding: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.details-container h5 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+    font-size: 16px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.details-container label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 11px;
+    color: #7f8c8d;
+    text-transform: uppercase;
+}
+
+.details-container select,
+.details-container textarea,
+.details-container input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 12px;
+    box-sizing: border-box;
+    background: #fafafa;
+}
+
+.details-container select[multiple] {
+    height: 80px;
+    background: #fff;
+}
+
+.details-container *:disabled {
+    background: #eee;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* CHART CONTAINER */
+.gantt-container {
+    background: white;
+    /* We remove border-radius here to make it look seamless with the sticky header */
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    overflow: visible !important;
+    margin: 0 20px;
+    /* Add margin to match the header padding */
+}
+
+svg#gantt {
+    overflow: visible !important;
+}
+
+.body-wrapper {
+    min-height: 900px;
+    padding-bottom: 100px;
+}
+
+/* HELPER CLASSES */
+.flex-row {
+    display: flex;
+    gap: 10px;
+}
+
+.flex-col {
+    flex: 1;
+}
