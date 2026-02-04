@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel View - Task Editor</title>
+    <link rel="stylesheet" href="excel.css">
+</head>
+<body>
+    <h1>📊 Task Editor - Excel View</h1>
+    
+    <div id="status" class="status"></div>
+    
+    <div class="controls">
+        <button class="btn btn-save" onclick="saveAllChanges()">💾 Save All Changes</button>
+        <button class="btn btn-add" onclick="addNewRow()">➕ Add New Task</button>
+    </div>
+    
+    <div class="table-container">
+        <table id="taskTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Progress (%)</th>
+                    <th>Dependencies</th>
+                    <th>Assignee</th>
+                    <th>Type</th>
+                    <th>Task URL</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="taskBody">
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+        let tasks = [];
+        let assignees = [];
+        let taskTypes = [];
+        
+        // Load initial data
+        async function loadData() {
+            try {
+                const [tasksRes, assigneesRes, typesRes] = await Promise.all([
+                    fetch('/api/tasks'),
+                    fetch('/api/assignees'),
+                    fetch('/api/task-types')
+                ]);
+                
+                tasks = await tasksRes.json();
+                assignees = await assigneesRes.json();
+                taskTypes = await typesRes.json();
+                
+                renderTable();
+            } catch (error) {
+                showStatus('Failed to load data: ' + error.message, 'error');
+            }
+        }
+        
+        function renderTable() {
+            const tbody = document.getElementById('taskBody');
+            tbody.innerHTML = '';
+            
+            tasks.forEach((task, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="number" value="${task.id}" data-field="id" data-index="${index}"></td>
+                    <td><input type="text" value="${task.name || ''}" data-field="name" data-index="${index}"></td>
+                    <td><input type="date" value="${task.start || ''}" data-field="start" data-index="${index}"></td>
+                    <td><input type="date" value="${task.end || ''}" data-field="end" data-index="${index}"></td>
+                    <td><input type="number" min="0" max="100" value="${task.progress || 0}" data-field="progress" data-index="${index}"></td>
+                    <td><input type="text" value="${task.dependencies || ''}" data-field="dependencies" data-index="${index}" placeholder="e.g., 210001, 210002"></td>
+                    <td>
+                        <select data-field="assignee" data-index="${index}">
+                            ${assignees.map(a => `<option value="${a}" ${task.assignee === a ? 'selected' : ''}>${a}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td>
+                        <select data-field="task_type" data-index="${index}">
+                            ${taskTypes.map(t => `<option value="${t.name}" ${task.task_type === t.name ? 'selected' : ''}>${t.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td><input type="text" value="${task.task_url || ''}" data-field="task_url" data-index="${index}"></td>
+                    <td><textarea data-field="desc" data-index="${index}">${task.desc || ''}</textarea></td>
+                    <td class="delete-cell">
+                        <button class="delete-btn" onclick="deleteRow(${index})">🗑️ Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Add event listeners for real-time updates
+            document.querySelectorAll('input, select, textarea').forEach(element => {
+                element.addEventListener('change', updateTaskData);
+            });
+        }
+        
+        function updateTaskData(event) {
+            const index = parseInt(event.target.dataset.index);
+            const field = event.target.dataset.field;
+            const value = event.target.value;
+            
+            if (field === 'progress') {
+                tasks[index][field] = parseInt(value) || 0;
+            } else if (field === 'id') {
+                tasks[index][field] = parseInt(value) || value;
+            } else {
+                tasks[index][field] = value;
+            }
+        }
+        
+        function addNewRow() {
+            const maxId = tasks.reduce((max, t) => {
+                const id = parseInt(t.id);
+                return id > max ? id : max;
+            }, 0);
+            
+            const newTask = {
+                id: maxId + 1,
+                name: "New Task",
+                start: new Date().toISOString().split('T')[0],
+                end: new Date().toISOString().split('T')[0],
+                progress: 0,
+                dependencies: "",
+                assignee: assignees[0] || "Unassigned",
+                task_type: taskTypes[0]?.name || "Frontend",
+                task_url: "",
+                desc: ""
+            };
+            
+            tasks.push(newTask);
+            renderTable();
+            showStatus('New task added. Remember to save changes!', 'success');
+        }
+        
+        function deleteRow(index) {
+            if (confirm(`Are you sure you want to delete task: ${tasks[index].name}?`)) {
+                tasks.splice(index, 1);
+                renderTable();
+                showStatus('Task deleted. Remember to save changes!', 'success');
+            }
+        }
+        
+        async function saveAllChanges() {
+            try {
+                const response = await fetch('/api/save-all-tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(tasks)
+                });
+                
+                if (response.ok) {
+                    showStatus('All changes saved successfully!', 'success');
+                } else {
+                    showStatus('Failed to save changes', 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Load data on page load
+        loadData();
+    </script>
+</body>
+</html>

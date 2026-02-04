@@ -61,19 +61,26 @@ function verifyPassword() {
 function updateAuthUI() {
     const btn = document.getElementById('auth-btn');
     const addBtn = document.getElementById('add-btn');
+    const excelBtn = document.getElementById('excel-btn');
 
     if (isEditMode) {
         btn.innerHTML = "🔓 Lock Editing";
         btn.className = "button btn-lock";
         addBtn.classList.remove('hidden');
+        excelBtn.classList.remove('hidden');
     } else {
         btn.innerHTML = "🔒 Unlock Editing";
         btn.className = "button btn-unlock";
         addBtn.classList.add('hidden');
+        excelBtn.classList.add('hidden');
     }
 }
 
 function closePassModal() { document.getElementById('password-modal').style.display = 'none'; }
+
+function openExcelView() {
+    window.open('/excel.html', '_blank');
+}
 
 // --- ADD MODAL LOGIC (UPDATED) ---
 function openAddModal() {

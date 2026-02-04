@@ -116,4 +116,20 @@ app.post('/api/update-task', (req, res) => {
     }
 });
 
+// POST: Save All Tasks (NEW)
+app.post('/api/save-all-tasks', (req, res) => {
+    const allTasks = req.body;
+    
+    if (!Array.isArray(allTasks)) {
+        return res.status(400).send({ error: "Invalid data format" });
+    }
+    
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(allTasks, null, 2));
+        res.send({ status: 'success', message: 'All tasks saved successfully' });
+    } catch (err) {
+        res.status(500).send({ error: "Failed to save data" });
+    }
+});
+
 app.listen(PORT, () => console.log(`http://localhost:${PORT}`));

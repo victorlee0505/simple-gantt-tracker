@@ -18,5 +18,9 @@
     {
         "name": "DevOps",
         "color": "#2ecc71"
+    },
+    {
+        "name": "Integration",
+        "color": "#e67e22"
     }
 ]
